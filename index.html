@@ -382,6 +382,8 @@
       background: var(--surface);
       width: 100%;
       max-width: 440px;
+      max-height: 88dvh;
+      overflow-y: auto;
       border-radius: 18px;
       padding: 20px;
       box-shadow: 0 12px 32px rgba(0,0,0,0.22);
@@ -443,17 +445,32 @@
       font-size: 0.9rem;
       line-height: 1.5;
       color: var(--text);
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
 
-    .detail-tip {
+    .detail-box {
       background: var(--bg);
       border-left: 3px solid var(--text);
       padding: 10px 12px;
       border-radius: 0 8px 8px 0;
       font-size: 0.82rem;
       line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .detail-box.transit {
+      border-left-color: #2563EB;
+      background: #F4F7FC;
       margin-bottom: 16px;
+    }
+
+    .detail-box-label {
+      font-weight: 700;
+      display: block;
+      margin-bottom: 2px;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .gmaps-btn {
@@ -539,7 +556,8 @@
     </div>
     <div class="detail-meta" id="detailMeta">Horaire • Quartier</div>
     <p class="detail-desc" id="detailDesc">Description</p>
-    <div class="detail-tip" id="detailTip">Conseil</div>
+    <div class="detail-box" id="detailTip"></div>
+    <div class="detail-box transit" id="detailTransit"></div>
     <a href="#" target="_blank" rel="noopener noreferrer" class="gmaps-btn" id="detailGmaps">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -577,8 +595,9 @@
       lat: 50.06235,
       lng: 19.93555,
       inDefaultBounds: true,
-      desc: 'Votre point de chute idéalement situé à deux pas du Rynek Główny (place principale) et de la rue animée Szewska.',
-      tip: 'Adresse : Szewska 4, 31-009 Kraków. À ~12 minutes à pied de la gare centrale Kraków Główny.',
+      desc: 'Votre point de chute idéalement situé à 150 mètres du Rynek Główny (place principale), en pleine zone piétonne.',
+      tip: 'Adresse : Szewska 4, 31-009 Kraków. Tout le centre historique est accessible à pied en moins de 10 min.',
+      transit: 'Depuis la gare Kraków Główny : 12 min à pied via le parc Planty, ou 1 arrêt de tramway (lignes 4, 14, 24) jusqu’à « Teatr Bagatela » (à 2 min de l’auberge).',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Flamingo+Hostel+Szewska+4+31-009+Krakow'
     },
     {
@@ -590,8 +609,9 @@
       lat: 50.0684,
       lng: 19.9475,
       inDefaultBounds: true,
-      desc: 'Gare ferroviaire et routière principale (reliée au centre commercial Galeria Krakowska). Point de départ et d’arrivée des trains directs vers l’aéroport.',
-      tip: 'Ligne de train SKA1 vers l’aéroport toutes les 30 min (trajet de 17 min, billet ~17 PLN / 4 €).',
+      desc: 'Gare ferroviaire et routière principale (reliée au centre commercial chauffé Galeria Krakowska). Point de départ et d’arrivée des trains directs vers l’aéroport.',
+      tip: 'Ligne de train SKA1 vers l’aéroport toutes les 30 min (trajet de 17 min, billet ~17 PLN / 4 € aux bornes ou dans le train).',
+      transit: 'Pour rejoindre l’auberge au chaud : traversez la galerie marchande Galeria Krakowska jusqu’à l’arrêt « Dworzec Główny Zachód » et prenez le tramway 4 ou 14 jusqu’à « Teatr Bagatela » (4 min).',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Krakow+Glowny+Railway+Station'
     },
     {
@@ -602,14 +622,15 @@
       category: 'Arrivée & Départ • Balice',
       lat: 50.0777,
       lng: 19.7848,
-      inDefaultBounds: false, // N'écrase pas le zoom centre-ville par défaut
+      inDefaultBounds: false,
       desc: 'Aéroport international de Cracovie-Balice, situé à environ 11 km à l’ouest du centre historique.',
-      tip: 'Pour le retour dimanche : prenez le train SKA1 depuis Kraków Główny (17 min) ou un Bolt/Uber (~25 min).',
+      tip: 'Suivez les panneaux « Train to City Center » (passerelle couverte depuis le terminal) : pas besoin d’attendre dehors.',
+      transit: 'Le train SKA1 est l’option la plus rapide et fiable (17 min jusqu’à Kraków Główny, 4 €). Sinon Bolt/Uber porte-à-porte (~25 min, 12–15 € à deux).',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=John+Paul+II+International+Airport+Krakow+Balice'
     }
   ];
 
-  // Étapes de l'itinéraire par jour
+  // Étapes du programme par jour
   const PLACES = [
     // VENDREDI 20 NOVEMBRE (Arrivée 12h)
     {
@@ -624,6 +645,7 @@
       lng: 19.9378,
       desc: 'Ancienne cantine polonaise remise au goût du jour. Parfait juste après avoir déposé vos sacs à l’auberge pour manger chaud, vite et local (pierogi, soupe żurek, escalope panée).',
       tip: 'Budget étudiant : 4 à 6 € le repas complet. Paiement par carte accepté.',
+      transit: 'À pied (6 min / 450 m) depuis le Flamingo Hostel en traversant directement la place du marché vers la rue Grodzka — plus rapide que n’importe quel transport.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Bar+Mleczny+Pod+Temida+Grodzka+43+Krakow'
     },
     {
@@ -636,8 +658,9 @@
       category: 'Place principale • Stare Miasto',
       lat: 50.0616,
       lng: 19.9373,
-      desc: 'L’immense place médiévale au cœur de Cracovie. Traversez la Halle aux Draps (Sukiennice) et écoutez le joueur de trompette depuis la tour de la basilique Sainte-Marie.',
+      desc: 'L’immense place médiévale au cœur de Cracovie. Traversez les galeries couvertes de la Halle aux Draps (Sukiennice) et écoutez le joueur de trompette depuis la tour de la basilique Sainte-Marie.',
       tip: 'Le signal de trompette (Hejnał) retentit à chaque heure pile aux quatre points cardinaux.',
+      transit: 'À pied (3 min / 250 m) en remontant la rue Grodzka : les arcades de la Halle aux Draps vous abritent du vent et du froid.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Rynek+Glowny+Krakow'
     },
     {
@@ -652,6 +675,7 @@
       lng: 19.9354,
       desc: 'Ancienne résidence des rois de Pologne surplombant la Vistule. Superbe ambiance au crépuscule avec les illuminations de la cour royale.',
       tip: 'L’accès aux cours extérieures et aux remparts avec vue sur la Vistule est 100 % gratuit (fermeture des grilles vers 17h).',
+      transit: 'À pied (10 min / 800 m) tout droit par les rues historiques Grodzka et Kanonicza. Pas de tram direct dans la zone piétonne.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Wawel+Royal+Castle+Krakow'
     },
     {
@@ -659,14 +683,15 @@
       day: 1,
       step: 4,
       time: '20h30',
-      shortName: 'Pijalnia Wódki (Szewska)',
-      title: 'Rue Szewska & Pijalnia Wódki',
-      category: 'Soirée étudiante • Vieille Ville',
-      lat: 50.0631,
-      lng: 19.9345,
-      desc: 'Dans la même rue que votre auberge ! Le Pijalnia Wódki i Piwa est célèbre pour son décor rétro des années 70 et son ambiance étudiante.',
-      tip: 'Tarifs mini sur les bières et shots traditionnels (ex. Soplica noisette).',
-      gmaps: 'https://www.google.com/maps/search/?api=1&query=Pijalnia+Wodki+i+Piwa+Szewska+20+Krakow'
+      shortName: 'Cafés-caves & Rue Szewska',
+      title: 'Rue Szewska & Cafés-caves historiques',
+      category: 'Soirée au chaud • Vieille Ville',
+      lat: 50.0628,
+      lng: 19.9350,
+      desc: 'Ambiance étudiante très animée dès la nuit tombée dans la rue de votre auberge. Descendez dans les caves voûtées en briques rouges (comme le célèbre Piwnica pod Baranami sur la place voisine ou les salons de chocolat chaud de Szewska) pour écouter de la musique live et déguster des pâtisseries polonaises.',
+      tip: 'Testez un chocolat chaud épais polonais (gorąca czekolada) ou un gâteau szarlotka (tarte aux pommes chaude).',
+      transit: 'À 1 min à pied (50 m) de votre auberge Flamingo Hostel : idéal le soir pour ne pas avoir à marcher dans le froid au retour.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Szewska+Krakow'
     },
 
     // SAMEDI 21 NOVEMBRE
@@ -682,6 +707,7 @@
       lng: 19.9543,
       desc: 'Alternative idéale à l’Usine de Schindler (sans contrainte de réservation). Découvrez le mémorial aux chaises en bronze et la pharmacie de Tadeusz Pankiewicz, seul Polonais autorisé à vivre dans le ghetto.',
       tip: 'Tarif étudiant (bilet ulgowy) à environ 14 PLN (~3,20 €) sur présentation de votre carte étudiante.',
+      transit: 'Tramway direct au chaud (12 min) : prenez le tram 24 depuis l’arrêt « Teatr Bagatela » (à 2 min de l’auberge) jusqu’à « Plac Bohaterów Getta » juste devant le musée (ticket étudiant 20 min à 2 PLN / 0,50 €).',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Apteka+pod+Orlem+Plac+Bohaterow+Getta+18+Krakow'
     },
     {
@@ -694,8 +720,9 @@
       category: 'Vue panoramique 360° • Podgórze',
       lat: 50.0381,
       lng: 19.9584,
-      desc: 'À 15 minutes à pied au sud de la place, cette mystérieuse colline artificielle offre la plus belle vue dégagée sur toute la ville et les toits de Cracovie.',
+      desc: 'Cette mystérieuse colline artificielle offre la plus belle vue dégagée à 360° sur toute la ville et les toits de Cracovie.',
       tip: 'Accès libre et gratuit. Prévoyez de bonnes baskets si le sentier est humide.',
+      transit: 'Le plus rapide par temps froid : commandez un Bolt ou Uber depuis la place (5 min / ~3,50 € à deux) jusqu’au pied de la colline (ul. Marysińska), sinon 16 min de marche.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Kopiec+Krakusa+Krakow'
     },
     {
@@ -710,6 +737,7 @@
       lng: 19.9476,
       desc: 'Traversez la Vistule par la passerelle piétonne ornée de sculptures d’acrobates suspendues pour rejoindre Kazimierz, l’ancien quartier juif devenu le cœur bohème et artistique de la ville.',
       tip: 'Passez par la rue Józefa et le passage Meiselsa (lieu de tournage de La Liste de Schindler).',
+      transit: 'Bolt/Uber rapide depuis le tumulus jusqu’au côté Kazimierz de la passerelle (6 min / ~3,50 €) pour éviter la grande montée/descente dans le vent.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Kladka+Ojca+Bernatka+Krakow'
     },
     {
@@ -724,6 +752,7 @@
       lng: 19.9445,
       desc: 'Le cœur battant de Kazimierz. Au centre de la place, les guichets de la rotonde servent la fameuse Zapiekanka : une demi-baguette croustillante gratinée aux champignons et fromage.',
       tip: 'Comptez environ 3 à 4 € chez Endzior ou Okrąglak. Le quartier regorge aussi de friperies et cafés.',
+      transit: 'À pied (6 min / 450 m) via la rue Bożego Ciała. De nombreux cafés chauffés bordent la place pour manger votre zapiekanka à l’abri.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Plac+Nowy+Krakow'
     },
     {
@@ -731,13 +760,14 @@
       day: 2,
       step: 5,
       time: '21h00',
-      shortName: 'Alchemia (Kazimierz)',
-      title: 'Alchemia & Bars de Kazimierz',
+      shortName: 'Alchemia & Kazimierz',
+      title: 'Alchemia & Ambiance de Kazimierz',
       category: 'Soirée • Kazimierz',
       lat: 50.0515,
       lng: 19.9441,
       desc: 'Institution nocturne juste à côté de Plac Nowy : éclairage aux bougies, mobilier chiné et atmosphère décalée très prisée des étudiants.',
-      tip: 'Explorez aussi les bars cachés dans les cours intérieures de la rue Estery et de la rue Szeroka.',
+      tip: 'Explorez aussi les salles cachées et cafés musicaux autour de la rue Estery et de la rue Szeroka.',
+      transit: 'Pour rentrer au Flamingo Hostel la nuit sans avoir froid : Bolt/Uber direct (7 min / ~4 €) ou tramway de nuit depuis l’arrêt « Miodowa ».',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Alchemia+Estery+5+Krakow'
     },
 
@@ -753,7 +783,8 @@
       lat: 50.0619,
       lng: 19.9379,
       desc: 'Situé 4 mètres sous les pavés de la place du marché, ce musée archéologique moderne permet de marcher sur les véritables rues médiévales avec hologrammes et reconstitutions.',
-      tip: 'Demandez le tarif étudiant (bilet ulgowy ~28 PLN / 6,50 €) avec votre carte physique. Visite d’environ 1h15.',
+      tip: 'Demandez le tarif étudiant (bilet ulgowy ~28 PLN / 6,50 €) avec votre carte physique. Visite d’environ 1h15, 100 % en intérieur.',
+      transit: 'À pied (3 min / 220 m) depuis le Flamingo Hostel par la rue Szewska : vous êtes immédiatement à l’abri sous terre.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Rynek+Underground+Krakow'
     },
     {
@@ -767,7 +798,8 @@
       lat: 50.0646,
       lng: 19.9399,
       desc: 'Musée à taille humaine abritant le célèbre tableau de Léonard de Vinci, La Dame à l’hermine, ainsi que des œuvres de Rembrandt.',
-      tip: 'Tarif étudiant réduit très avantageux. Comptez 1h à 1h15 de visite.',
+      tip: 'Tarif étudiant réduit très avantageux. Comptez 1h à 1h15 de visite bien au chaud.',
+      transit: 'À pied (5 min / 350 m) en remontant la rue Floriańska depuis le Rynek Główny.',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Muzeum+Ksiazat+Czartoryskich+Krakow'
     },
     {
@@ -780,8 +812,9 @@
       category: 'Dernière balade & Déjeuner • Centre',
       lat: 50.0649,
       lng: 19.9415,
-      desc: 'Terminez par une marche le long de la ceinture verte des Planty jusqu’à la Barbacane, juste à côté de la gare centrale (Kraków Główny) pour récupérer vos sacs et rejoindre l’aéroport vers 15h30.',
+      desc: 'Terminez par un passage devant la Barbacane et les remparts médiévaux, juste à côté de la gare centrale (Kraków Główny) pour rejoindre l’aéroport vers 15h30.',
       tip: 'Le train direct pour l’aéroport (SKA1) part de Kraków Główny toutes les 30 min et met 17 minutes.',
+      transit: 'À 1 min du musée (100 m), puis 6 min à pied jusqu’à la gare Kraków Główny (ou 5 min pour récupérer vos bagages au Flamingo Hostel avant de prendre un Bolt/tram).',
       gmaps: 'https://www.google.com/maps/search/?api=1&query=Brama+Florianska+Krakow'
     }
   ];
@@ -790,7 +823,7 @@
   const map = L.map('map', { zoomControl: false }).setView([50.058, 19.942], 14);
   L.control.zoom({ position: 'topright' }).addTo(map);
 
-  // Crisp HD Esri World Street Map (net sur écrans Retina / mobile, sans clé API)
+  // Crisp HD Esri World Street Map
   L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
     attribution: 'Tiles &copy; Esri &mdash; OpenStreetMap contributors',
     maxZoom: 19,
@@ -799,8 +832,6 @@
 
   const hubsLayer = L.layerGroup().addTo(map);
   const markersLayer = L.layerGroup().addTo(map);
-  const routesLayer = L.layerGroup().addTo(map);
-  const routeCache = {}; // Cache des tracés OSRM
   let currentDay = 'all';
 
   // Render permanent Hubs (Hotel, Train Station, Airport)
@@ -826,64 +857,9 @@
     });
   }
 
-  // Fetch real pedestrian street route via OSRM
-  async function drawRealStreetRoute(dayNumber) {
-    const dayPlaces = PLACES.filter(p => p.day === dayNumber);
-    if (dayPlaces.length < 2) return;
-
-    // Include Flamingo Hostel at the start of each day's walking route for realistic context
-    const hotel = HUBS[0];
-    const waypoints = [hotel, ...dayPlaces];
-    const coordsString = waypoints.map(p => `${p.lng},${p.lat}`).join(';');
-
-    // Use cached geometry if already fetched
-    if (routeCache[dayNumber]) {
-      L.polyline(routeCache[dayNumber], {
-        color: DAY_COLORS[dayNumber],
-        weight: 4.5,
-        opacity: 0.85,
-        lineJoin: 'round'
-      }).addTo(routesLayer);
-      return;
-    }
-
-    try {
-      const url = `https://router.project-osrm.org/route/v1/foot/${coordsString}?overview=full&geometries=geojson`;
-      const res = await fetch(url);
-      const data = await res.json();
-
-      if (data.code === 'Ok' && data.routes && data.routes.length > 0) {
-        const latlngs = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
-        routeCache[dayNumber] = latlngs;
-
-        // Only draw if user hasn't switched filter in the meantime
-        if (currentDay === 'all' || Number(currentDay) === dayNumber) {
-          L.polyline(latlngs, {
-            color: DAY_COLORS[dayNumber],
-            weight: 4.5,
-            opacity: 0.85,
-            lineJoin: 'round'
-          }).addTo(routesLayer);
-        }
-        return;
-      }
-    } catch (e) {
-      // Fallback straight line if offline
-    }
-
-    const fallbackCoords = waypoints.map(p => [p.lat, p.lng]);
-    L.polyline(fallbackCoords, {
-      color: DAY_COLORS[dayNumber],
-      weight: 3.5,
-      opacity: 0.75,
-      dashArray: '6, 8'
-    }).addTo(routesLayer);
-  }
-
   // Render Map Markers & List Drawer
   function render(dayFilter) {
     markersLayer.clearLayers();
-    routesLayer.clearLayers();
     const listPanel = document.getElementById('listPanel');
     listPanel.innerHTML = '';
 
@@ -914,14 +890,10 @@
       listPanel.appendChild(item);
     });
 
-    // 2. Filter itinerary places
+    // 2. Filter places
     const filtered = dayFilter === 'all'
       ? PLACES
       : PLACES.filter(p => p.day === Number(dayFilter));
-
-    // Draw real street routes per day
-    const daysToDraw = dayFilter === 'all' ? [1, 2, 3] : [Number(dayFilter)];
-    daysToDraw.forEach(d => drawRealStreetRoute(d));
 
     // Add markers with permanent name labels & list items
     let lastDay = null;
@@ -1013,7 +985,8 @@
 
     document.getElementById('detailTitle').textContent = item.title;
     document.getElementById('detailDesc').textContent = item.desc;
-    document.getElementById('detailTip').textContent = `💡 ${item.tip}`;
+    document.getElementById('detailTip').innerHTML = `<span class="detail-box-label">💡 Bon plan</span>${item.tip}`;
+    document.getElementById('detailTransit').innerHTML = `<span class="detail-box-label">🧣 S'y rendre au chaud</span>${item.transit}`;
     document.getElementById('detailGmaps').href = item.gmaps;
 
     overlay.classList.add('open');
