@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Week-end à Cracovie • 20–22 Nov</title>
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #FAF7F2;
+      --surface: #FFFFFF;
+      --text: #1F2421;
+      --muted: #646E68;
+      --border: #E6E0D6;
+      --day1: #8B2635; /* Bordeaux */
+      --day2: #2D6A4F; /* Vert sauge foncé */
+      --day3: #C87D32; /* Ocre chaud */
+      --gps: #2563EB;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      z-index: 1000;
+      flex-shrink: 0;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    /* Day Filters */
+    .filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .filters::-webkit-scrollbar { display: none; }
+
+    .filter-btn {
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .filter-btn.active {
+      background: var(--text);
+      color: #FFF;
+      border-color: var(--text);
+    }
+    .filter-btn[data-day="1"].active { background: var(--day1); border-color: var(--day1); }
+    .filter-btn[data-day="2"].active { background: var(--day2); border-color: var(--day2); }
+    .filter-btn[data-day="3"].active { background: var(--day3); border-color: var(--day3); }
+
+    /* Main Layout */
+    .main-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (min-width: 820px) {
+      .main-container {
+        flex-direction: row;
+      }
+    }
+
+    /* Map */
+    #map {
+      width: 100%;
+      height: 56%;
+      z-index: 1;
+    }
+
+    @media (min-width: 820px) {
+      #map {
+        height: 100%;
+        flex: 1;
+      }
+    }
+
+    /* GPS Button */
+    .gps-btn {
+      position: absolute;
+      right: 14px;
+      bottom: calc(44% + 14px);
+      z-index: 900;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--text);
+      transition: transform 0.15s ease, background 0.2s;
+    }
+
+    @media (min-width: 820px) {
+      .gps-btn {
+        bottom: 24px;
+        right: 24px;
+      }
+    }
+
+    .gps-btn:active { transform: scale(0.94); }
+    .gps-btn.tracking {
+      background: var(--gps);
+      color: #FFF;
+      border-color: var(--gps);
+    }
+
+    /* Itinerary List Drawer */
+    .list-panel {
+      height: 44%;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 12px 14px 28px;
+      z-index: 500;
+    }
+
+    @media (min-width: 820px) {
+      .list-panel {
+        width: 390px;
+        height: 100%;
+        border-top: none;
+        border-right: 1px solid var(--border);
+        order: -1;
+      }
+    }
+
+    .day-section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      margin: 12px 0 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .day-section-title:first-child { margin-top: 2px; }
+
+    .place-item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 11px 12px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.1s;
+    }
+
+    .place-item:hover, .place-item.selected {
+      border-color: var(--text);
+    }
+
+    .step-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      color: #FFF;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .place-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .place-time {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .place-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .place-cat {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* Custom Map Markers */
+    .custom-marker {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      color: #FFF;
+      font-weight: 700;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2.5px solid #FFFFFF;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    }
+
+    /* GPS Pulse Marker */
+    .gps-dot {
+      width: 16px;
+      height: 16px;
+      background: var(--gps);
+      border: 3px solid #FFF;
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.25);
+    }
+
+    /* Detail Card Modal / Bottom Sheet */
+    .detail-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 12px;
+    }
+
+    .detail-overlay.open {
+      display: flex;
+    }
+
+    @media (min-width: 820px) {
+      .detail-overlay {
+        align-items: center;
+      }
+    }
+
+    .detail-card {
+      background: var(--surface);
+      width: 100%;
+      max-width: 440px;
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.2);
+      animation: slideUp 0.22s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(24px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .detail-badge {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #FFF;
+      padding: 3px 9px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+
+    .detail-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.25;
+    }
+
+    .close-btn {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      flex-shrink: 0;
+    }
+
+    .detail-meta {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      font-weight: 500;
+    }
+
+    .detail-desc {
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .detail-tip {
+      background: var(--bg);
+      border-left: 3px solid var(--text);
+      padding: 10px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .gmaps-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 12px;
+      background: var(--text);
+      color: #FFF;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-radius: 12px;
+      transition: opacity 0.2s;
+    }
+
+    .gmaps-btn:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <h1>Cracovie • 20 au 22 Nov.</h1>
+      <div class="subtitle">Arrivée Ven. 12h • Départ Dim. ~15h30</div>
+    </div>
+  </div>
+  <div class="filters">
+    <button class="filter-btn active" data-day="all">Tout le séjour</button>
+    <button class="filter-btn" data-day="1"><span class="dot" style="background:var(--day1)"></span>Ven. 20</button>
+    <button class="filter-btn" data-day="2"><span class="dot" style="background:var(--day2)"></span>Sam. 21</button>
+    <button class="filter-btn" data-day="3"><span class="dot" style="background:var(--day3)"></span>Dim. 22</button>
+  </div>
+</header>
+
+<div class="main-container">
+  <div id="map"></div>
+
+  <button class="gps-btn" id="gpsBtn" title="Ma position en temps réel" aria-label="Ma position en temps réel">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="3 11 22 2 13 21 11 13 3 11"></polygon>
+    </svg>
+  </button>
+
+  <div class="list-panel" id="listPanel"></div>
+</div>
+
+<!-- Detail Card Modal -->
+<div class="detail-overlay" id="detailOverlay">
+  <div class="detail-card" id="detailCard">
+    <div class="detail-header">
+      <div>
+        <span class="detail-badge" id="detailDayBadge">Jour 1</span>
+        <h2 class="detail-title" id="detailTitle">Titre du lieu</h2>
+      </div>
+      <button class="close-btn" id="closeDetail" aria-label="Fermer">&times;</button>
+    </div>
+    <div class="detail-meta" id="detailMeta">Horaire • Quartier</div>
+    <p class="detail-desc" id="detailDesc">Description</p>
+    <div class="detail-tip" id="detailTip">Conseil</div>
+    <a href="#" target="_blank" rel="noopener noreferrer" class="gmaps-btn" id="detailGmaps">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+        <circle cx="12" cy="10" r="3"></circle>
+      </svg>
+      Ouvrir dans Google Maps
+    </a>
+  </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<script>
+  const DAY_COLORS = {
+    1: '#8B2635',
+    2: '#2D6A4F',
+    3: '#C87D32'
+  };
+
+  const DAY_NAMES = {
+    1: 'Vendredi 20 nov. (Après-midi & Soir)',
+    2: 'Samedi 21 nov. (Journée complète)',
+    3: 'Dimanche 22 nov. (Matin & Départ ~15h30)'
+  };
+
+  const PLACES = [
+    // VENDREDI 20 NOVEMBRE (Arrivée 12h)
+    {
+      id: 'v1',
+      day: 1,
+      step: 1,
+      time: '13h30',
+      title: 'Bar Mleczny Pod Temidą',
+      category: 'Déjeuner typique • Vieille Ville',
+      lat: 50.0588,
+      lng: 19.9378,
+      desc: 'Ancienne cantine polonaise remise au goût du jour. Parfait juste après votre arrivée pour manger chaud, vite et local (pierogi, soupe żurek, escalope panée).',
+      tip: 'Budget étudiant : 4 à 6 € le repas complet. Paiement par carte accepté.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Bar+Mleczny+Pod+Temida+Grodzka+43+Krakow'
+    },
+    {
+      id: 'v2',
+      day: 1,
+      step: 2,
+      time: '14h45',
+      title: 'Rynek Główny & Halle aux Draps',
+      category: 'Place principale • Stare Miasto',
+      lat: 50.0616,
+      lng: 19.9373,
+      desc: 'L’immense place médiévale au cœur de Cracovie. Traversez la Halle aux Draps (Sukiennice) et écoutez le joueur de trompette depuis la tour de la basilique Sainte-Marie.',
+      tip: 'Le signal de trompette (Hejnał) retentit à chaque heure pile aux quatre points cardinaux.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Rynek+Glowny+Krakow'
+    },
+    {
+      id: 'v3',
+      day: 1,
+      step: 3,
+      time: '16h00',
+      title: 'Colline et Château du Wawel',
+      category: 'Panorama & Histoire • Wawel',
+      lat: 50.0541,
+      lng: 19.9354,
+      desc: 'Ancienne résidence des rois de Pologne surplombant la Vistule. Superbe ambiance au crépuscule avec les illuminations de la cour royale.',
+      tip: 'L’accès aux cours extérieures et aux remparts avec vue sur la Vistule est 100 % gratuit (fermeture des grilles vers 17h).',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Wawel+Royal+Castle+Krakow'
+    },
+    {
+      id: 'v4',
+      day: 1,
+      step: 4,
+      time: '20h30',
+      title: 'Rue Szewska & Pijalnia Wódki',
+      category: 'Soirée étudiante • Vieille Ville',
+      lat: 50.0631,
+      lng: 19.9345,
+      desc: 'La rue la plus animée le vendredi soir autour de la place. Arrêtez-vous au Pijalnia Wódki i Piwa pour son décor rétro des années 70 et son ambiance étudiante.',
+      tip: 'Tarifs mini sur les bières et shots traditionnels (ex. Soplica noisette).',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Pijalnia+Wodki+i+Piwa+Szewska+20+Krakow'
+    },
+
+    // SAMEDI 21 NOVEMBRE
+    {
+      id: 's1',
+      day: 2,
+      step: 1,
+      time: '10h00',
+      title: 'Place des Héros & Pharmacie sous l’Aigle',
+      category: 'Histoire du Ghetto • Podgórze',
+      lat: 50.0470,
+      lng: 19.9543,
+      desc: 'Alternative idéale à l’Usine de Schindler (sans contrainte de réservation). Découvrez le mémorial aux chaises en bronze et la pharmacie de Tadeusz Pankiewicz, seul Polonais autorisé à vivre dans le ghetto.',
+      tip: 'Tarif étudiant (bilet ulgowy) à environ 14 PLN (~3,20 €) sur présentation de votre carte étudiante.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Apteka+pod+Orlem+Plac+Bohaterow+Getta+18+Krakow'
+    },
+    {
+      id: 's2',
+      day: 2,
+      step: 2,
+      time: '11h45',
+      title: 'Tumulus de Krakus (Kopiec Krakusa)',
+      category: 'Vue panoramique 360° • Podgórze',
+      lat: 50.0381,
+      lng: 19.9584,
+      desc: 'À 15 minutes à pied au sud de la place, cette mystérieuse colline artificielle offre la plus belle vue dégagée sur toute la ville et les toits de Cracovie.',
+      tip: 'Accès libre et gratuit. Prévoyez de bonnes baskets si le sentier est humide.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Kopiec+Krakusa+Krakow'
+    },
+    {
+      id: 's3',
+      day: 2,
+      step: 3,
+      time: '13h15',
+      title: 'Passerelle Bernatka & Quartier Kazimierz',
+      category: 'Balade & Street-Art • Kazimierz',
+      lat: 50.0479,
+      lng: 19.9476,
+      desc: 'Traversez la Vistule par la passerelle piétonne ornée de sculptures d’acrobates suspendues pour rejoindre Kazimierz, l’ancien quartier juif devenu le cœur bohème et artistique de la ville.',
+      tip: 'Passez par la rue Józefa et le passage Meiselsa (lieu de tournage de La Liste de Schindler).',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Kladka+Ojca+Bernatka+Krakow'
+    },
+    {
+      id: 's4',
+      day: 2,
+      step: 4,
+      time: '14h30',
+      title: 'Plac Nowy & Zapiekanka',
+      category: 'Street-food culte • Kazimierz',
+      lat: 50.0518,
+      lng: 19.9445,
+      desc: 'Le cœur battant de Kazimierz. Au centre de la place, les guichets de la rotonde servent la fameuse Zapiekanka : une demi-baguette croustillante gratinée aux champignons et fromage.',
+      tip: 'Comptez environ 3 à 4 € chez Endzior ou Okrąglak. Le quartier regorge aussi de friperies et cafés.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Plac+Nowy+Krakow'
+    },
+    {
+      id: 's5',
+      day: 2,
+      step: 5,
+      time: '21h00',
+      title: 'Alchemia & Bars de Kazimierz',
+      category: 'Soirée • Kazimierz',
+      lat: 50.0515,
+      lng: 19.9441,
+      desc: 'Institution nocturne juste à côté de Plac Nowy : éclairage aux bougies, mobilier chiné et atmosphère décalée très prisée des étudiants.',
+      tip: 'Explorez aussi les bars cachés dans les cours intérieures de la rue Estery et de la rue Szeroka.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Alchemia+Estery+5+Krakow'
+    },
+
+    // DIMANCHE 22 NOVEMBRE (Départ ~15h30 - 16h)
+    {
+      id: 'd1',
+      day: 3,
+      step: 1,
+      time: '10h15',
+      title: 'Rynek Underground (Souterrains)',
+      category: 'Musée immersif • Rynek Główny',
+      lat: 50.0619,
+      lng: 19.9379,
+      desc: 'Situé 4 mètres sous les pavés de la place du marché, ce musée archéologique moderne permet de marcher sur les véritables rues médiévales avec hologrammes et reconstitutions.',
+      tip: 'Demandez le tarif étudiant (bilet ulgowy ~28 PLN / 6,50 €) avec votre carte physique. Visite d’environ 1h15.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Rynek+Underground+Krakow'
+    },
+    {
+      id: 'd2',
+      day: 3,
+      step: 2,
+      time: '12h00',
+      title: 'Musée Czartoryski (La Dame à l’hermine)',
+      category: 'Chef-d’œuvre • Vieille Ville',
+      lat: 50.0646,
+      lng: 19.9399,
+      desc: 'Musée à taille humaine abritant le célèbre tableau de Léonard de Vinci, La Dame à l’hermine, ainsi que des œuvres de Rembrandt.',
+      tip: 'Tarif étudiant réduit très avantageux. Comptez 1h à 1h15 de visite.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Muzeum+Ksiazat+Czartoryskich+Krakow'
+    },
+    {
+      id: 'd3',
+      day: 3,
+      step: 3,
+      time: '13h30',
+      title: 'Parc Planty & Porte Saint-Florian',
+      category: 'Dernière balade & Déjeuner • Centre',
+      lat: 50.0649,
+      lng: 19.9415,
+      desc: 'Terminez par une marche le long de la ceinture verte des Planty (anciens remparts) jusqu’à la Barbacane, juste à côté de la gare centrale (Kraków Główny) pour rejoindre l’aéroport ou votre transport vers 15h30.',
+      tip: 'Le train direct pour l’aéroport (SKA1) part de Kraków Główny toutes les 30 min et met seulement 17 minutes.',
+      gmaps: 'https://www.google.com/maps/search/?api=1&query=Brama+Florianska+Krakow'
+    }
+  ];
+
+  // Init Map centered on Krakow
+  const map = L.map('map', { zoomControl: false }).setView([50.056, 19.943], 14);
+  L.control.zoom({ position: 'topright' }).addTo(map);
+
+  // Clean light basemap (CartoDB Positron)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19
+  }).addTo(map);
+
+  let markersLayer = L.layerGroup().addTo(map);
+  let routesLayer = L.layerGroup().addTo(map);
+  let currentDay = 'all';
+
+  // Render Map & List
+  function render(dayFilter) {
+    markersLayer.clearLayers();
+    routesLayer.clearLayers();
+    const listPanel = document.getElementById('listPanel');
+    listPanel.innerHTML = '';
+
+    const filtered = dayFilter === 'all'
+      ? PLACES
+      : PLACES.filter(p => p.day === Number(dayFilter));
+
+    // Draw polylines per day
+    const daysToDraw = dayFilter === 'all' ? [1, 2, 3] : [Number(dayFilter)];
+    daysToDraw.forEach(d => {
+      const dayCoords = PLACES.filter(p => p.day === d).map(p => [p.lat, p.lng]);
+      if (dayCoords.length > 1) {
+        L.polyline(dayCoords, {
+          color: DAY_COLORS[d],
+          weight: 3.5,
+          opacity: 0.75,
+          dashArray: '6, 8'
+        }).addTo(routesLayer);
+      }
+    });
+
+    // Add markers & list items
+    let lastDay = null;
+    const bounds = [];
+
+    filtered.forEach(place => {
+      bounds.push([place.lat, place.lng]);
+
+      // Group header in list
+      if (place.day !== lastDay) {
+        const titleEl = document.createElement('div');
+        titleEl.className = 'day-section-title';
+        titleEl.innerHTML = `<span class="dot" style="background:${DAY_COLORS[place.day]}"></span>${DAY_NAMES[place.day]}`;
+        listPanel.appendChild(titleEl);
+        lastDay = place.day;
+      }
+
+      // Custom numbered marker
+      const icon = L.divIcon({
+        className: '',
+        html: `<div class="custom-marker" style="background:${DAY_COLORS[place.day]}">${place.step}</div>`,
+        iconSize: [28, 28],
+        iconAnchor: [14, 14]
+      });
+
+      const marker = L.marker([place.lat, place.lng], { icon }).addTo(markersLayer);
+      marker.on('click', () => openDetail(place));
+
+      // List item
+      const item = document.createElement('div');
+      item.className = 'place-item';
+      item.innerHTML = `
+        <div class="step-badge" style="background:${DAY_COLORS[place.day]}">${place.step}</div>
+        <div class="place-info">
+          <div class="place-time">${place.time}</div>
+          <div class="place-title">${place.title}</div>
+          <div class="place-cat">${place.category}</div>
+        </div>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      `;
+      item.addEventListener('click', () => {
+        map.flyTo([place.lat, place.lng], 16, { duration: 0.6 });
+        openDetail(place);
+      });
+      listPanel.appendChild(item);
+    });
+
+    if (bounds.length > 0) {
+      map.fitBounds(bounds, { padding: [36, 36] });
+    }
+  }
+
+  // Detail Modal logic
+  const overlay = document.getElementById('detailOverlay');
+  const closeBtn = document.getElementById('closeDetail');
+
+  function openDetail(place) {
+    const badge = document.getElementById('detailDayBadge');
+    badge.textContent = `Jour ${place.day} • Étape ${place.step}`;
+    badge.style.background = DAY_COLORS[place.day];
+
+    document.getElementById('detailTitle').textContent = place.title;
+    document.getElementById('detailMeta').textContent = `${place.time} — ${place.category}`;
+    document.getElementById('detailDesc').textContent = place.desc;
+    document.getElementById('detailTip').textContent = `💡 ${place.tip}`;
+    document.getElementById('detailGmaps').href = place.gmaps;
+
+    overlay.classList.add('open');
+  }
+
+  closeBtn.addEventListener('click', () => overlay.classList.remove('open'));
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+
+  // Filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentDay = btn.dataset.day;
+      render(currentDay);
+    });
+  });
+
+  // Real-time GPS tracking
+  const gpsBtn = document.getElementById('gpsBtn');
+  let watchId = null;
+  let userMarker = null;
+  let userCircle = null;
+
+  gpsBtn.addEventListener('click', () => {
+    if (!navigator.geolocation) {
+      alert("La géolocalisation n'est pas supportée par votre navigateur.");
+      return;
+    }
+
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+      gpsBtn.classList.remove('tracking');
+      if (userMarker) map.removeLayer(userMarker);
+      if (userCircle) map.removeLayer(userCircle);
+      userMarker = null;
+      userCircle = null;
+      return;
+    }
+
+    gpsBtn.classList.add('tracking');
+    let firstFix = true;
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const latlng = [latitude, longitude];
+
+        if (!userMarker) {
+          const gpsIcon = L.divIcon({
+            className: '',
+            html: '<div class="gps-dot"></div>',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8]
+          });
+          userMarker = L.marker(latlng, { icon: gpsIcon, zIndexOffset: 1000 }).addTo(map);
+          userCircle = L.circle(latlng, {
+            radius: accuracy,
+            color: '#2563EB',
+            fillColor: '#2563EB',
+            fillOpacity: 0.12,
+            weight: 1
+          }).addTo(map);
+        } else {
+          userMarker.setLatLng(latlng);
+          userCircle.setLatLng(latlng).setRadius(accuracy);
+        }
+
+        if (firstFix) {
+          map.flyTo(latlng, 16);
+          firstFix = false;
+        }
+      },
+      (err) => {
+        alert("Impossible d'accéder à votre position GPS. Vérifiez les autorisations de Safari/Chrome.");
+        gpsBtn.classList.remove('tracking');
+        watchId = null;
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+  });
+
+  // Initial render
+  render('all');
+</script>
+</body>
+</html>
